@@ -1,22 +1,31 @@
 import duckdb
 import os
 
+# Miljövariabler för Postgres
 POSTGRES_HOST     = os.getenv("POSTGRES_HOST",     "localhost")
 POSTGRES_DB       = os.getenv("POSTGRES_DB",       "ducklake")
 POSTGRES_USER     = os.getenv("POSTGRES_USER",     "duck")
 POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres")
 
+# Miljövariabler för S3/MinIO
 S3_ENDPOINT = os.getenv("S3_ENDPOINT", "")
 S3_KEY_ID   = os.getenv("S3_KEY_ID",   "minioadmin")
 S3_SECRET   = os.getenv("S3_SECRET",   "minioadmin")
 S3_BUCKET   = os.getenv("S3_BUCKET",   "ducklake")
 
 def get_conn():
+    """Skapar en koppling till DuckDB och ansluter till Postgres/S3."""
     con = duckdb.connect()
-    con.execute("LOAD ducklake")
-    con.execute("LOAD postgres")
+    
+    # Ladda nödvändiga tillägg
+    con.execute("INSTALL postgres; LOAD postgres;")
+    # Om 'ducklake' är ett eget tillägg krävs det att det är installerat
+    try:
+        con.execute("LOAD ducklake")
+    except Exception:
+        print("Varning: Kunde inte ladda ducklake-tillägget.")
 
-    # PORT hårdkodas till 5432 — undviker Kubernetes POSTGRES_PORT-konflikt
+    # Skapa SECRET för Postgres
     con.execute(f"""
         CREATE OR REPLACE SECRET (
             TYPE postgres,
@@ -28,8 +37,9 @@ def get_conn():
         )
     """)
 
+    # Hantera S3-koppling om endpoint finns
     if S3_ENDPOINT:
-        con.execute("LOAD httpfs")
+        con.execute("INSTALL httpfs; LOAD httpfs;")
         con.execute(f"""
             CREATE OR REPLACE SECRET (
                 TYPE s3,
@@ -44,16 +54,18 @@ def get_conn():
     else:
         data_path = "./data/lake/"
 
-    # Använd bara dbname i ATTACH — SECRET hanterar autentiseringen
+    # Anslut till Postgres-databasen som ett schema i DuckDB
     con.execute(f"""
-        ATTACH 'ducklake:postgres:dbname={POSTGRES_DB}'
-        AS lake (DATA_PATH '{data_path}')
+        ATTACH 'dbname={POSTGRES_DB}'
+        AS lake (TYPE postgres, DATA_PATH '{data_path}')
     """)
     return con
 
-    def init_db():
-
-        con = get_conn()
+# VIKTIGT: init_db måste ligga längst ut till vänster (utanför get_conn)
+def init_db():
+    """Initierar databasen genom att skapa nödvändiga tabeller."""
+    con = get_conn()
+    try:
         con.execute("""
             CREATE TABLE IF NOT EXISTS lake.vader (
                 datum DATE,
@@ -61,4 +73,8 @@ def get_conn():
                 temperatur DOUBLE
             )
         """)
+        print("Tabellen lake.vader är redo.")
+    except Exception as e:
+        print(f"Kunde inte skapa tabell: {e}")
+    finally:
         con.close()
