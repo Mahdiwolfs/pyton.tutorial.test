@@ -1,3 +1,5 @@
+from pydantic import BaseModel
+
 class NyVader(BaseModel):
     datum: str
     stad: str
