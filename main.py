@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+app = FastAPI()
+
 class NyVader(BaseModel):
     datum: str
     stad: str
