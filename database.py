@@ -52,12 +52,13 @@ def get_conn():
     return con
 
     def init_db():
-    con = get_conn()
-    con.execute("""
-        CREATE TABLE IF NOT EXISTS lake.vader (
-            datum DATE,
-            stad VARCHAR,
-            temperatur DOUBLE
-        )
-    """)
-    con.close()
+
+        con = get_conn()
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS lake.vader (
+                datum DATE,
+                stad VARCHAR,
+                temperatur DOUBLE
+            )
+        """)
+        con.close()
