@@ -60,11 +60,4 @@ def get_conn():
             temperatur DOUBLE
         )
     """)
-    _con = get_conn()
-if _con.execute("SELECT COUNT(*) FROM lake.vader").fetchone()[0] == 0:
-    _con.executemany("INSERT INTO lake.vader VALUES (?, ?, ?)", [
-        ("2024-01-01", "Stockholm", -2.0),
-        ("2024-07-01", "Göteborg",  22.5),
-    ])
-_con.close()
     con.close()
