@@ -62,19 +62,14 @@ def get_conn():
     return con
 
 # VIKTIGT: init_db måste ligga längst ut till vänster (utanför get_conn)
-def init_db():
-    """Initierar databasen genom att skapa nödvändiga tabeller."""
-    con = get_conn()
-    try:
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS lake.vader (
-                datum DATE,
-                stad VARCHAR,
-                temperatur DOUBLE
-            )
-        """)
-        print("Tabellen lake.vader är redo.")
-    except Exception as e:
-        print(f"Kunde inte skapa tabell: {e}")
-    finally:
-        con.close()
+# ... (kod ovanför är bra fram till ATTACH)
+
+    # Anslut till Postgres-databasen. 
+    # Notera: Vi tar bort DATA_PATH härifrån eftersom det inte används för Postgres.
+    con.execute(f"ATTACH 'dbname={POSTGRES_DB}' AS lake (TYPE POSTGRES)")
+
+    # Om du vill använda din S3-path för att t.ex. exportera data senare, 
+    # kan du spara den i en variabel eller sätta en DuckDB-inställning, 
+    # men den ska inte vara med i ATTACH-kommandot ovan.
+    
+    return con
